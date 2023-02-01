@@ -1,8 +1,9 @@
-name: ${name}
+name: SnowLeapardRebootV2
 main: com.nova41.bukkitdev.slr.SnowLeopardReboot
-version: ${version}
+version: 1.0
 author: Nova41
-description: ${description}
+api-version: 1.19
+description: A reboot of the original SnowLeopard
 commands:
   snowleopardr:
     aliases: [sl, slr, eac]
