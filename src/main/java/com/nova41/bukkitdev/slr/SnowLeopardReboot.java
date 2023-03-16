@@ -6,11 +6,13 @@ import com.nova41.bukkitdev.slr.model.LVQNeuralNetwork;
 import com.nova41.bukkitdev.slr.model.LVQNeuralNetworkPredictResult;
 import com.nova41.bukkitdev.slr.model.LVQNeuralNetworkSummary;
 import com.nova41.bukkitdev.slr.model.LabeledData;
-import com.nova41.bukkitdev.slr.util.SLFiles;
 import com.nova41.bukkitdev.slr.util.SLMaths;
+import net.kyori.adventure.text.Component;
+import org.apache.commons.io.FileSystemUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -22,6 +24,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +34,7 @@ import java.util.function.Consumer;
 
 /**
  * SnowLeopardR - a rebooted version of SnowLeopard
- * All algorithms and designs could be found at https://www.spigotmc.org/threads/machine-learning-killaura-detection-in-minecraft.301609/
+ * All algorithms and designs could be found in <a href="https://www.spigotmc.org/threads/machine-learning-killaura-detection-in-minecraft.301609/">this thread</a>
  *
  * @author Nova41
  */
@@ -56,15 +59,11 @@ public class SnowLeopardReboot extends JavaPlugin {
     private CommandManager commandManager;
 
     public void onEnable() {
-        // Initialize data folder
-        try {
-            SLFiles.createDirectoryIfAbsent(getDataFolder().getPath(), DIRNAME_CATEGORY);
-            SLFiles.createDirectoryIfAbsent(getDataFolder().getPath(), DIRNAME_DUMPED_DATA);
-            SLFiles.saveResourceIfAbsent(this, "config.yml", "config.yml");
-        } catch (IOException e) {
-            getLogger().severe("Unable to save resource file");
-            e.printStackTrace();
-        }
+
+        reloadConfig();
+        getConfig().options().copyDefaults(true);
+        getConfig().options().copyHeader(true);
+        saveDefaultConfig();
 
         // Rebuild the built-in neural network with parameters specified in config.yml
         rebuildNetworkWithDataset();
@@ -92,7 +91,13 @@ public class SnowLeopardReboot extends JavaPlugin {
         // Read dataset from category folder and train the network with the dataset
         unregisterAllCategories();
 
+
+        if (!new File(getDataFolder(), "category").exists()) {
+            new File(getDataFolder(), "category").mkdir();
+        }
+
         File[] categoryFiles = new File(getDataFolder(), "category").listFiles();
+
         if (categoryFiles == null) {
             getLogger().severe("Unable to read dataset: 'category' is not a directory or an I/O error occurred");
             return;
@@ -141,7 +146,7 @@ public class SnowLeopardReboot extends JavaPlugin {
         /* Sub Commands */
         // /slr
         commandManager.register("", (sender, params) -> {
-            sender.sendMessage(ChatColor.GREEN + "SnowLeopardR " + ChatColor.YELLOW + getDescription().getVersion() + ChatColor.GOLD + " Made by Nova41 with ❤");
+            sender.sendMessage(ChatColor.GREEN + "SnowLeopardR " + ChatColor.YELLOW + getDescription().getVersion() + ChatColor.GOLD + " Made by Nova41 with love");
             sender.sendMessage(ChatColor.GREEN + "Project github page: ");
             sender.sendMessage(ChatColor.AQUA + "" + ChatColor.UNDERLINE + "https://github.com/Nova41/SnowLeopard/");
             sender.sendMessage(ChatColor.YELLOW + "/slr info" + ChatColor.WHITE + " Display network statistics");
@@ -155,7 +160,7 @@ public class SnowLeopardReboot extends JavaPlugin {
         // /slr version
         commandManager.register("version", ((sender, params) -> {
             sender.sendMessage(ChatColor.GREEN + "You are running SnowLeopardR " + ChatColor.YELLOW + getDescription().getVersion());
-            sender.sendMessage(ChatColor.GOLD + "Made by Nova41 with ❤");
+            sender.sendMessage(ChatColor.GOLD + "Made by Nova41 with love");
             sender.sendMessage(ChatColor.GREEN + "Project github page: " + ChatColor.AQUA + ChatColor.UNDERLINE + "https://github.com/Nova41/SnowLeopard/");
         }));
 
@@ -347,8 +352,10 @@ public class SnowLeopardReboot extends JavaPlugin {
                 // get the angle sequence containing angles in the past duration_to_generate_a_vector milliseconds
                 List<Float> angleSequence = angleLogger.getLoggedAngles(player);
                 // do nothing if the player does not attack anybody in the past duration
-                if (angleSequence == null)
+                if (angleSequence == null){
+                    player.sendMessage(Component.text("You did not attack anyone in " + duration_to_generate_a_vector + " seconds"));
                     break;
+                }
                 // extract the features from the sequence and save them to a temporary array
                 vectors[i - 1] = SLMaths.extractFeatures(angleSequence);
                 // clear saved angles to get ready for new angles

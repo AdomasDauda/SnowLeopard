@@ -1,7 +1,7 @@
 package com.nova41.bukkitdev.slr.util;
 
 import com.nova41.bukkitdev.slr.model.LabeledData;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
